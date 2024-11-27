@@ -25,8 +25,8 @@ public class UserController {
         return "successfully saved!";
     }
 
-    @PostMapping("/search_usr")
-    public User searchUser(@RequestBody User user){
-        return null;
+    @GetMapping("/search_usr")
+    public User searchUser(@RequestParam Long id){
+        return userService.searchUserById(id);
     }
 }
