@@ -2,7 +2,6 @@ package com.example.Controller;
 
 import com.example.Domain.User;
 import com.example.Repository.UserRepository;
-import com.example.Service.RedisService;
 import com.example.Service.UserService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController
 @RequestMapping("/redis")
-public class RedisController {
+public class UserController {
     @Resource
     private UserService userService;
 
@@ -24,5 +23,10 @@ public class RedisController {
     public String saveUser(@RequestBody User user){
         userService.save(user);
         return "successfully saved!";
+    }
+
+    @PostMapping("/search_usr")
+    public User searchUser(@RequestBody User user){
+        return null;
     }
 }

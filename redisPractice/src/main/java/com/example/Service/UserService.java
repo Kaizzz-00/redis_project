@@ -24,8 +24,14 @@ public class UserService {
 
     public User save(User user) {
         User savedUser = userRepository.save(user);
-        String rediskey = REDIS_KEY_PREFIX + savedUser.getId();
-        redisService.save(rediskey,savedUser,CACHE_TIMEOUT);
+        String redisKey = REDIS_KEY_PREFIX + savedUser.getId();
+        redisService.save(redisKey,savedUser,CACHE_TIMEOUT);
         return savedUser;
+    }
+
+    public User searchUserById(Long id) {
+        String redisKey = REDIS_KEY_PREFIX + id;
+        User cachedUser = (User) redisService.get(redisKey);
+        return null;
     }
 }
