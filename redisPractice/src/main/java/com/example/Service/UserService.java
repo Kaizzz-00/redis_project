@@ -47,4 +47,16 @@ public class UserService {
         }
         return null;
     }
+
+    public User updateUser(User user) {
+        return null;
+    }
+
+    public void delUserById(Long id) {
+
+    }
+
+    public boolean existUserById(Long id) {
+        return false;
+    }
 }

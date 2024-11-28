@@ -29,4 +29,19 @@ public class UserController {
     public User searchUser(@RequestParam Long id){
         return userService.searchUserById(id);
     }
+
+    @PutMapping("/update_usr")
+    public User updateUser(@RequestBody User user){
+        return userService.updateUser(user);
+    }
+
+    @DeleteMapping("/del_usr")
+    public String delUser(@RequestParam Long id){
+        return "successfully deleted!";
+    }
+
+    @GetMapping("/exist_usr")
+    public boolean existUser(@RequestParam Long id){
+        return false;
+    }
 }
