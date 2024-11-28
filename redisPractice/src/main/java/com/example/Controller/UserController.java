@@ -37,11 +37,12 @@ public class UserController {
 
     @DeleteMapping("/del_usr")
     public String delUser(@RequestParam Long id){
+        userService.delUserById(id);
         return "successfully deleted!";
     }
 
     @GetMapping("/exist_usr")
     public boolean existUser(@RequestParam Long id){
-        return false;
+        return userService.existUserById(id);
     }
 }

@@ -26,6 +26,7 @@ public class RedisService {
     // 数据修改
     public void update(String key, Object newValue) {
         redisTemplate.opsForValue().set(key, newValue);
+        redisTemplate.opsForHash().put(key,"isUpdated",true);
     }
 
     // 数据删除

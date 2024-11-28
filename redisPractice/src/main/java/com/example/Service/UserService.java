@@ -1,11 +1,17 @@
 package com.example.Service;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ObjectUtil;
 import com.example.Domain.User;
 import com.example.Repository.UserRepository;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.service.spi.ServiceException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+
+import java.nio.file.CopyOption;
 
 /**
  * @author kyle.zheng
@@ -49,7 +55,18 @@ public class UserService {
     }
 
     public User updateUser(User user) {
-        return null;
+        User savedUser = userRepository.findById(user.getId()).orElse(null);
+        if (ObjectUtil.isNull(savedUser)) {
+            throw new ServiceException("Wrong ID!");
+        }
+        String redisKey = REDIS_KEY_PREFIX + user.getId();
+        BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
+        userRepository.save(savedUser);
+
+        // Redis 操作
+        User updatedUser = userRepository.findById(savedUser.getId()).orElse(null);
+        redisService.update(redisKey,updatedUser);
+        return updatedUser;
     }
 
     public void delUserById(Long id) {
