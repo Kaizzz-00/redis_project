@@ -54,17 +54,17 @@ public class UserService {
         return null;
     }
 
-    public User updateUser(User user) {
-        User savedUser = userRepository.findById(user.getId()).orElse(null);
+    public User updateUser(User user,Long id) {
+        User savedUser = userRepository.findById(id).orElse(null);
         if (ObjectUtil.isNull(savedUser)) {
             throw new ServiceException("Wrong ID!");
         }
-        String redisKey = REDIS_KEY_PREFIX + user.getId();
+        String redisKey = REDIS_KEY_PREFIX + id;
         BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
         userRepository.save(savedUser);
 
         // Redis 操作
-        User updatedUser = userRepository.findById(savedUser.getId()).orElse(null);
+        User updatedUser = userRepository.findById(id).orElse(null);
         redisService.update(redisKey,updatedUser);
         return updatedUser;
     }

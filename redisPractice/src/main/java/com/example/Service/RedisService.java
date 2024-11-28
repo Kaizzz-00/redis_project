@@ -1,6 +1,7 @@
 package com.example.Service;
 
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import java.util.concurrent.TimeUnit;
  * @date 2024/11/27
  */
 @Service
+@Slf4j
 public class RedisService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -26,7 +28,7 @@ public class RedisService {
     // 数据修改
     public void update(String key, Object newValue) {
         redisTemplate.opsForValue().set(key, newValue);
-        redisTemplate.opsForHash().put(key,"isUpdated",true);
+        log.info("Redis Updated!");
     }
 
     // 数据删除

@@ -30,9 +30,9 @@ public class UserController {
         return userService.searchUserById(id);
     }
 
-    @PutMapping("/update_usr")
-    public User updateUser(@RequestBody User user){
-        return userService.updateUser(user);
+    @PutMapping("/update_usr/{id}")
+    public User updateUser(@RequestBody User user, @PathVariable Long id){
+        return userService.updateUser(user,id);
     }
 
     @DeleteMapping("/del_usr")
