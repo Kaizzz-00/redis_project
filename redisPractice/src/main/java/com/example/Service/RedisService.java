@@ -20,6 +20,10 @@ public class RedisService {
     public void save(String key,Object value, long timeOut){
         redisTemplate.opsForValue().set(key,value,timeOut, TimeUnit.SECONDS);
     }
+
+    public void setField(String key,String field, String value){
+        redisTemplate.opsForHash().put(key,field,value);
+    }
     // 数据读取
     public Object get(String key) {
         return redisTemplate.opsForValue().get(key);
@@ -29,6 +33,12 @@ public class RedisService {
     public void update(String key, Object newValue) {
         redisTemplate.opsForValue().set(key, newValue);
         log.info("Redis Updated!");
+    }
+
+    public void updateToHash(String key, String field, Object value) {
+        redisTemplate.opsForHash().put(key,field,value);
+        redisTemplate.opsForHash().put(key,"isUpdated",true);
+        log.info("Redis Hash Updated!");
     }
 
     // 数据删除

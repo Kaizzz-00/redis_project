@@ -65,7 +65,8 @@ public class UserService {
 
         // Redis 操作
         User updatedUser = userRepository.findById(id).orElse(null);
-        redisService.update(redisKey,updatedUser);
+        redisService.updateToHash(redisKey + "new","Value",updatedUser);
+        //redisService.setField(redisKey,"updated","true");
         return updatedUser;
     }
 
