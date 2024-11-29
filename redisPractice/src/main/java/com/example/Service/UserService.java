@@ -5,13 +5,16 @@ import cn.hutool.core.bean.copier.CopyOptions;
 import cn.hutool.core.util.ObjectUtil;
 import com.example.Domain.User;
 import com.example.Repository.UserRepository;
+import com.example.Util.RedisLockUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.service.spi.ServiceException;
+import org.redisson.api.RLock;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.CopyOption;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author kyle.zheng
@@ -30,6 +33,8 @@ public class UserService {
     private static final long CACHE_TIMEOUT = 3600;
     // Redis 前缀
     private static final String REDIS_KEY_PREFIX = "user_table:";
+    // 分布式锁的前缀
+    private static final String LOCK_KEY_PREFIX = "user_lock:";
 
     public User save(User user) {
         User savedUser = userRepository.save(user);
@@ -60,14 +65,27 @@ public class UserService {
             throw new ServiceException("Wrong ID!");
         }
         String redisKey = REDIS_KEY_PREFIX + id;
-        BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
-        userRepository.save(savedUser);
+        String lockKey = LOCK_KEY_PREFIX + id;
+        RLock lock = null;
+        try{
+            lock = RedisLockUtil.tryLock(lockKey,10,10, TimeUnit.SECONDS);
+            BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
+            userRepository.save(savedUser);
 
-        // Redis 操作
-        User updatedUser = userRepository.findById(id).orElse(null);
-        redisService.updateToHash(redisKey + "new","Value",updatedUser);
-        //redisService.setField(redisKey,"updated","true");
-        return updatedUser;
+            // Redis 操作
+            User updatedUser = userRepository.findById(id).orElse(null);
+            redisService.update(redisKey,updatedUser);
+            return updatedUser;
+        }
+        catch (Exception e) {
+            throw new ServiceException("Error acquiring lock", e);
+        }
+        finally {
+            if (ObjectUtil.isNull(lock)){
+                RedisLockUtil.unlock(lock);
+            }
+        }
+
     }
 
     public void delUserById(Long id) {
