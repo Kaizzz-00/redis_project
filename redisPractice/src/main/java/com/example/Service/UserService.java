@@ -29,6 +29,9 @@ public class UserService {
     @Resource
     private RedisService redisService;
 
+    @Resource
+    private RedisLockUtil redisLockUtil;  // 注入RedisLockUtil
+
     // Redis 缓存时长（秒）
     private static final long CACHE_TIMEOUT = 3600;
     // Redis 前缀
@@ -68,7 +71,7 @@ public class UserService {
         String lockKey = LOCK_KEY_PREFIX + id;
         RLock lock = null;
         try{
-            lock = RedisLockUtil.tryLock(lockKey,10,10, TimeUnit.SECONDS);
+            lock = redisLockUtil.tryLock(lockKey,10,10, TimeUnit.SECONDS);
             BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
             userRepository.save(savedUser);
 

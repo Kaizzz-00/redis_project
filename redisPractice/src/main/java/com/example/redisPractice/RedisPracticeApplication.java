@@ -7,7 +7,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.Controller","com.example.Service"})
+@ComponentScan(basePackages = {"com.example.Controller","com.example.Service","com.example.Util"})
 @EnableJpaRepositories(basePackages = "com.example.Repository")
 @EntityScan(basePackages = "com.example.Domain")
 public class RedisPracticeApplication {
