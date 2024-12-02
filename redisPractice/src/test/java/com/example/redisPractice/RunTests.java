@@ -79,6 +79,29 @@ import static org.mockito.Mockito.verify;
 
     }
 
-
+    @Test
+    public void testDistributedLockWhileUpdateUser() throws InterruptedException {
+        Long userId  = 2L;
+        User user = new User();
+        user.setName("Updated Name_Testing_lock");
+        int numberOfThreads = 5;
+        CountDownLatch latch = new CountDownLatch(numberOfThreads);
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+        for (int i = 0; i < numberOfThreads; i++) {
+            executorService.submit(() -> {
+                try{
+                    userService.updateUser(user, userId);
+                }
+                catch (Exception e) {}
+                finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        User updatedUser = userRepository.findById(userId).orElse(null);
+        assertEquals("Updated Name_Testing_lock", updatedUser.getName());
+        executorService.shutdown();
+    }
 
 }

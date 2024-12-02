@@ -71,8 +71,10 @@ public class UserService {
         String lockKey = LOCK_KEY_PREFIX + id;
         RLock lock = null;
         try{
-            lock = redisLockUtil.tryLock(lockKey,10,10, TimeUnit.SECONDS);
+            lock = redisLockUtil.tryLock(lockKey,30,3, TimeUnit.SECONDS);
+            log.info("锁被占用了，正在操作中");
             BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
+            savedUser.setVersionCount(savedUser.getVersionCount()+1);
             // 保存更新的用户
             if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
                 userRepository.save(savedUser);
@@ -88,6 +90,7 @@ public class UserService {
         }
         finally {
             if (ObjectUtil.isNull(lock)){
+                log.info("锁被释放了，进行下一步");
                 RedisLockUtil.unlock(lock);
             }
         }

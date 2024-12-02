@@ -28,4 +28,8 @@ public class User implements Serializable {
     private String password;
 
     private String email;
+    /**
+     * 更新次数，默认为一次
+     */
+    private Integer versionCount;
 }
