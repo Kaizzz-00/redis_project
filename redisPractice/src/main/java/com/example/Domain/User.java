@@ -14,7 +14,6 @@ import java.io.Serializable;
  */
 @Data
 @AllArgsConstructor
-@NoArgsConstructor
 @Builder
 @Entity
 @Table(name = "users")
@@ -32,4 +31,11 @@ public class User implements Serializable {
      * 更新次数，默认为一次
      */
     private Integer versionCount;
+
+    public User() {
+        // 确保在构造时 versionCount 默认为 1
+        if (this.versionCount == null) {
+            this.versionCount = 1;
+        }
+    }
 }

@@ -5,6 +5,8 @@ import com.example.Repository.UserRepository;
 import com.example.Service.RedisService;
 import com.example.Service.UserService;
 import com.example.Util.RedisLockUtil;
+import jakarta.annotation.Resource;
+import org.hibernate.service.spi.ServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -13,6 +15,9 @@ import org.mockito.MockitoAnnotations;
 import org.redisson.api.RLock;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -20,6 +25,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -37,16 +43,16 @@ import static org.mockito.Mockito.verify;
     void contextLoads() {
     }
 
-    @Mock
+    @Resource
     private UserRepository userRepository;
 
-    @InjectMocks
+    @Resource
     private UserService userService;
 
-    @Mock
+    @Resource
     private RedisService redisService;
 
-    @Mock
+    @Resource
     private RedisLockUtil redisLockUtil;
 
     @BeforeEach
@@ -102,6 +108,42 @@ import static org.mockito.Mockito.verify;
         User updatedUser = userRepository.findById(userId).orElse(null);
         assertEquals("Updated Name_Testing_lock", updatedUser.getName());
         executorService.shutdown();
+    }
+
+    @Test
+    public void testUpdateUserWithLockv2() throws InterruptedException {
+
+        // 2. 使用多个线程模拟并发请求
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            System.out.println("=====================this is the " + i + " thread");
+            threads.add(new Thread(() -> {
+                try {
+                    // 发起更新操作
+                    User updatUser = userRepository.findById(6L).orElse(null);
+                    updatUser.setName("Updated Name_Testing_lock" + new Date());
+                    User updatedUser = userService.updateUser(updatUser, 6L);
+                    System.out.println("Updated user versionCount: " + updatedUser.getVersionCount());
+                } catch (Exception e) {
+                    System.err.println("Error: " + e.getMessage());
+                }
+            }));
+        }
+
+        // 3. 启动所有线程
+        for (Thread thread : threads) {
+            thread.start();
+        }
+
+        // 4. 等待所有线程执行完成
+        for (Thread thread : threads) {
+            thread.join();
+        }
+        // 5. 断言数据是否正确更新，versionCount 应该为 1
+        User finalUser = userRepository.findById(6L).orElse(null);
+        assertNotNull(finalUser);
+        System.out.println(finalUser.getVersionCount());
+
     }
 
 }

@@ -74,31 +74,36 @@ public class UserService {
         String redisKey = REDIS_KEY_PREFIX + id;
         String lockKey = LOCK_KEY_PREFIX + id;
         RLock lock = null;
-        try{
-            lock = redisLockUtil.tryLock(lockKey,30,3, TimeUnit.SECONDS);
-            log.info("锁被占用了，正在操作中");
-            BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
-            savedUser.setVersionCount(savedUser.getVersionCount()+1);
-            // 保存更新的用户
-            if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
-                userRepository.save(savedUser);
-            }
+        try {
+            lock = redisLockUtil.tryLock(lockKey, 11, 10, TimeUnit.SECONDS);
+            if (lock != null) {
+                log.info("锁被占用了，正在操作中");
+//                Thread.sleep(100000);
 
-            // Redis 操作
-            User updatedUser = userRepository.findById(id).orElse(null);
-            redisService.update(redisKey,updatedUser);
-            return updatedUser;
-        }
-        catch (Exception e) {
+                // 执行业务逻辑
+                BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
+                savedUser.setVersionCount(savedUser.getVersionCount() + 1);
+
+                // 保存更新的用户
+                if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
+                    userRepository.save(savedUser);
+                }
+
+                // Redis 操作
+                User updatedUser = userRepository.findById(id).orElse(null);
+                redisService.update(redisKey, updatedUser);
+                return updatedUser;
+            }
+        } catch (Exception e) {
             throw new ServiceException("Error acquiring lock", e);
-        }
-        finally {
-            if (ObjectUtil.isNull(lock)){
+        } finally {
+            // 确保只有当锁被成功获取时才释放
+            if (lock != null && lock.isHeldByCurrentThread()) {
                 log.info("锁被释放了，进行下一步");
                 RedisLockUtil.unlock(lock);
             }
         }
-
+        return savedUser;
     }
 
     public User updateUserWithLock(User user,Long id) throws InterruptedException {
