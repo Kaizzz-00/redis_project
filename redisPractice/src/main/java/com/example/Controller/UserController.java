@@ -32,11 +32,7 @@ public class UserController {
 
     @PutMapping("/update_usr/{id}")
     public User updateUser(@RequestBody User user, @PathVariable Long id){
-        try {
-            return userService.updateUserWithLock(user,id);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        return userService.updateUser(user,id);
     }
 
     @DeleteMapping("/del_usr")

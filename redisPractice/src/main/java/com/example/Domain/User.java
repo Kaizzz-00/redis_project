@@ -32,6 +32,9 @@ public class User implements Serializable {
      */
     private Integer versionCount;
 
+    @Transient
+    private Integer sleepTime;
+
     public User() {
         // 确保在构造时 versionCount 默认为 1
         if (this.versionCount == null) {
