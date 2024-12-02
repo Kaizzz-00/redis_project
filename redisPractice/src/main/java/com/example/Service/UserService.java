@@ -73,7 +73,10 @@ public class UserService {
         try{
             lock = redisLockUtil.tryLock(lockKey,10,10, TimeUnit.SECONDS);
             BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
-            userRepository.save(savedUser);
+            // 保存更新的用户
+            if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
+                userRepository.save(savedUser);
+            }
 
             // Redis 操作
             User updatedUser = userRepository.findById(id).orElse(null);
