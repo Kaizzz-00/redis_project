@@ -10,6 +10,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.service.spi.ServiceException;
 import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class UserService {
 
     @Resource
     private RedisLockUtil redisLockUtil;  // 注入RedisLockUtil
+
+    @Resource
+    private RedissonClient redissonClient;
 
     // Redis 缓存时长（秒）
     private static final long CACHE_TIMEOUT = 3600;
@@ -95,6 +99,43 @@ public class UserService {
             }
         }
 
+    }
+
+    public User updateUserWithLock(User user,Long id) throws InterruptedException {
+        User savedUser = userRepository.findById(id).orElse(null);
+        if (ObjectUtil.isNull(savedUser)) {
+            throw new ServiceException("Wrong ID!");
+        }
+        String redisKey = REDIS_KEY_PREFIX + id;
+        String lockKey = LOCK_KEY_PREFIX + id;
+        RLock lock = redissonClient.getLock(lockKey);
+
+        try{
+            if(lock.tryLock(10,10,TimeUnit.SECONDS)){
+                log.info("锁被占用了，正在执行中");
+                // 执行业务逻辑
+                BeanUtil.copyProperties(user, savedUser, CopyOptions.create().ignoreNullValue());
+                savedUser.setVersionCount(savedUser.getVersionCount() + 1);
+                if (!savedUser.equals(user)) {
+                    userRepository.save(savedUser);
+                }
+                User updatedUser = userRepository.findById(id).orElse(null);
+                redisService.update(redisKey, updatedUser);
+                return updatedUser;
+            }
+            else{
+                throw new ServiceException("获取锁失败");
+            }
+        }
+        catch (Exception e) {
+            throw new ServiceException("更新用户信息失败");
+        }
+        finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("锁被释放了");
+            }
+        }
     }
 
     public void delUserById(Long id) {
