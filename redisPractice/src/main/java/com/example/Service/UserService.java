@@ -76,7 +76,7 @@ public class UserService {
         RLock lock = null;
         try {
             lock = redisLockUtil.tryLock(lockKey, 11, 10, TimeUnit.SECONDS);
-            if (lock != null) {
+            if (ObjectUtil.isNotNull(lock)) {
                 log.info("锁被占用了，正在操作中");
                 Thread.sleep(user.getSleepTime());
 
@@ -99,7 +99,7 @@ public class UserService {
             throw new ServiceException("Error acquiring lock", e);
         } finally {
             // 确保只有当锁被成功获取时才释放
-            if (lock != null && lock.isHeldByCurrentThread()) {
+            if (ObjectUtil.isNotNull(lock) && lock.isHeldByCurrentThread()) {
                 log.info("锁被释放了，进行下一步");
                 RedisLockUtil.unlock(lock);
             }
