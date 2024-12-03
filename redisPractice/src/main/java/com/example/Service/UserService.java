@@ -10,6 +10,7 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.service.spi.ServiceException;
 import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -51,19 +52,30 @@ public class UserService {
     }
 
     public User searchUserById(Long id) {
-        String redisKey = REDIS_KEY_PREFIX + id;
-        User cachedUser = (User) redisService.get(redisKey);
-        if (ObjectUtil.isNotNull(cachedUser)) {
-            log.info("Redis Data Hit, returning from cache");
-            return cachedUser;
+        RLock readLock =  redissonClient.getReadWriteLock(LOCK_KEY_PREFIX + id).readLock();
+        readLock.lock(10,TimeUnit.SECONDS);
+        try{
+            String redisKey = REDIS_KEY_PREFIX + id;
+            User cachedUser = (User) redisService.get(redisKey);
+            if (ObjectUtil.isNotNull(cachedUser)) {
+                log.info("Redis Data Hit, returning from cache");
+                return cachedUser;
+            }
+            User user = userRepository.findById(id).orElse(null);
+            if (ObjectUtil.isNotNull(user)) {
+                redisService.save(redisKey,user,CACHE_TIMEOUT);
+                log.info("Redis Data saved, returning from db");
+                return user;
+            }
+            return null;
         }
-        User user = userRepository.findById(id).orElse(null);
-        if (ObjectUtil.isNotNull(user)) {
-            redisService.save(redisKey,user,CACHE_TIMEOUT);
-            log.info("Redis Data saved, returning from db");
-            return user;
+        catch (Exception e){
+            throw new ServiceException("acquiring lock failed" + e.getMessage());
         }
-        return null;
+        finally {
+            readLock.unlock();
+        }
+
     }
 
     public User updateUser(User user,Long id) {
