@@ -108,6 +108,35 @@ public class UserService {
         return savedUser;
     }
 
+    public User updateUserWithoutUtil(User user,Long id) {
+        User savedUser = userRepository.findById(id).orElse(null);
+        if (ObjectUtil.isNull(savedUser)) {
+            throw new ServiceException("Wrong ID!");
+        }
+        String redisKey = REDIS_KEY_PREFIX + id;
+        String lockKey = LOCK_KEY_PREFIX + id;
+        RLock lock = redissonClient.getLock(lockKey);
+        lock.lock(10, TimeUnit.SECONDS);
+        try{
+            Thread.sleep(user.getSleepTime());
+            CopyOptions copyOptions = CopyOptions.create().setIgnoreProperties("versionCount").ignoreNullValue();
+            BeanUtil.copyProperties(user,savedUser,copyOptions);
+            savedUser.setVersionCount(savedUser.getVersionCount() + 1);
+            if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
+                userRepository.save(savedUser);
+            }
+            User updatedUser = userRepository.findById(id).orElse(null);
+            redisService.update(redisKey, updatedUser);
+            return updatedUser;
+        }
+        catch (Exception e) {
+            throw new ServiceException("Error acquiring lock", e);
+        }
+        finally {
+            lock.unlock();
+        }
+    }
+
     public void delUserById(Long id) {
 
     }
