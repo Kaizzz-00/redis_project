@@ -32,6 +32,7 @@ public class RedisLockUtil{
     }
 
     public RLock tryLock(String lockKey, long waitTime, long leaseTime, TimeUnit timeUnit) throws InterruptedException {
+        // Will acquire a RLock instance, it will not "create" a lock
         RLock lock = redissonClient.getLock(lockKey);
         if (lock.tryLock(waitTime,leaseTime,timeUnit)){
             return lock;

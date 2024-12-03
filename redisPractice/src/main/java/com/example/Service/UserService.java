@@ -78,22 +78,23 @@ public class UserService {
             lock = redisLockUtil.tryLock(lockKey, 11, 10, TimeUnit.SECONDS);
             if (ObjectUtil.isNotNull(lock)) {
                 log.info("锁被占用了，正在操作中");
-                Thread.sleep(user.getSleepTime());
+
 
                 // 执行业务逻辑
+
+                Thread.sleep(user.getSleepTime());
                 CopyOptions copyOptions = CopyOptions.create().ignoreNullValue().setIgnoreProperties("versionCount","email");
                 BeanUtil.copyProperties(user, savedUser, copyOptions);
                 savedUser.setVersionCount(savedUser.getVersionCount() + 1);
-
                 // 保存更新的用户
                 if (!savedUser.equals(user)) { // 如果数据有变化，才进行保存
                     userRepository.save(savedUser);
                 }
-
                 // Redis 操作
                 User updatedUser = userRepository.findById(id).orElse(null);
                 redisService.update(redisKey, updatedUser);
                 return updatedUser;
+
             }
         } catch (Exception e) {
             throw new ServiceException("Error acquiring lock", e);
