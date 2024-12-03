@@ -53,8 +53,10 @@ public class UserService {
 
     public User searchUserById(Long id) {
         RLock readLock =  redissonClient.getReadWriteLock(LOCK_KEY_PREFIX + id).readLock();
-        readLock.lock(10,TimeUnit.SECONDS);
+
         try{
+            readLock.lock(10,TimeUnit.SECONDS);
+            Thread.sleep(5000);
             String redisKey = REDIS_KEY_PREFIX + id;
             User cachedUser = (User) redisService.get(redisKey);
             if (ObjectUtil.isNotNull(cachedUser)) {
@@ -73,7 +75,9 @@ public class UserService {
             throw new ServiceException("acquiring lock failed" + e.getMessage());
         }
         finally {
-            readLock.unlock();
+            if (readLock.isHeldByCurrentThread()) {
+                readLock.unlock();
+            }
         }
 
     }
@@ -128,8 +132,9 @@ public class UserService {
         String redisKey = REDIS_KEY_PREFIX + id;
         String lockKey = LOCK_KEY_PREFIX + id;
         RLock lock = redissonClient.getLock(lockKey);
-        lock.lock(10, TimeUnit.SECONDS);
+
         try{
+            lock.lock(10, TimeUnit.SECONDS);
             Thread.sleep(user.getSleepTime());
             CopyOptions copyOptions = CopyOptions.create().setIgnoreProperties("versionCount").ignoreNullValue();
             BeanUtil.copyProperties(user,savedUser,copyOptions);
@@ -145,7 +150,9 @@ public class UserService {
             throw new ServiceException("Error acquiring lock", e);
         }
         finally {
-            lock.unlock();
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
         }
     }
 
